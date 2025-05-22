@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center my-4">YaCut</h1>
+    <p class="text-center">Создайте короткую ссылку автоматически или предложите свой вариант</p>
+
+    <form method="POST" novalidate>
+        {{ form.csrf_token }}
+        <div class="form-group">
+            {{ form.original_link.label }}
+            {{ form.original_link(class="form-control", placeholder="Длинная ссылка") }}
+            {% for error in form.original_link.errors %}
+                <small class="text-danger">{{ error }}</small>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.custom_id.label }}
+            {{ form.custom_id(class="form-control", placeholder="Ваш вариант короткой ссылки (необязательно)") }}
+            {% for error in form.custom_id.errors %}
+                <small class="text-danger">{{ error }}</small>
+            {% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+
+    {% if short_url %}
+    <div class="alert alert-success mt-4">
+        Ваша новая ссылка готова: <a href="{{ short_url }}" target="_blank">{{ short_url }}</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
