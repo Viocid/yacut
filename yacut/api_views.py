@@ -10,31 +10,14 @@ from yacut.models import URLMap
 from yacut.utils import get_unique_short_id
 
 
-def is_valid_content_type(content_type: str) -> bool:
-    """Проверяет корректный Content-Type."""
-    return content_type == "application/json"
-
-
-def is_valid_custom_id(custom_id: str) -> bool:
-    """Проверяет валидность пользовательского ID."""
-    if not custom_id:
-        return True
-    return len(custom_id) <= 16 and bool(re.fullmatch(REGULAR, custom_id))
-
-
-def is_short_id_available(short_id: str) -> bool:
-    """Проверяет доступность short_id в БД."""
-    return not URLMap.query.filter_by(short=short_id).first()
-
-
-@app.route("/api/id/", methods=["POST"])
-def add_url():
+def validate_request_data():
+    """Валидация входящего запроса и данных"""
     if not request.data:
         raise InvalidAPIUsage(
             "Отсутствует тело запроса", HTTPStatus.BAD_REQUEST
         )
 
-    if not is_valid_content_type(request.content_type):
+    if request.content_type != "application/json":
         raise InvalidAPIUsage(
             "Content-Type должен быть application/json",
             HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
@@ -44,8 +27,47 @@ def add_url():
         data = request.get_json()
         if data is None:
             raise ValueError
+        return data
     except ValueError:
         raise InvalidAPIUsage("Невалидный JSON", HTTPStatus.BAD_REQUEST)
+
+
+def validate_custom_id(custom_id: str):
+    """Валидация пользовательского short_id"""
+    if custom_id and not re.fullmatch(REGULAR, custom_id):
+        raise InvalidAPIUsage(
+            "Указано недопустимое имя для короткой ссылки",
+            HTTPStatus.BAD_REQUEST,
+        )
+    if custom_id and len(custom_id) > 16:
+        raise InvalidAPIUsage(
+            "Указано недопустимое имя для короткой ссылки",
+            HTTPStatus.BAD_REQUEST,
+        )
+
+
+def create_url_map(original_url: str, custom_id: str = None) -> URLMap:
+    """Создает и возвращает новый URLMap объект"""
+    short = custom_id if custom_id else get_unique_short_id()
+
+    if not URLMap.query.filter_by(short=short).first():
+        return URLMap(original=original_url, short=short)
+    if custom_id:
+        raise InvalidAPIUsage(
+            "Предложенный вариант короткой ссылки уже существует.",
+            HTTPStatus.BAD_REQUEST,
+        )
+    short = get_unique_short_id()
+
+    raise InvalidAPIUsage(
+        "Не удалось создать уникальную короткую ссылку",
+        HTTPStatus.INTERNAL_SERVER_ERROR,
+    )
+
+
+@app.route("/api/id/", methods=["POST"])
+def add_url():
+    data = validate_request_data()
 
     if "url" not in data:
         raise InvalidAPIUsage(
@@ -53,30 +75,9 @@ def add_url():
         )
 
     custom_id = data.get("custom_id")
+    validate_custom_id(custom_id)
 
-    if custom_id and not is_valid_custom_id(custom_id):
-        raise InvalidAPIUsage(
-            "Указано недопустимое имя для короткой ссылки",
-            HTTPStatus.BAD_REQUEST,
-        )
-
-    short = custom_id if custom_id else get_unique_short_id()
-
-    if not is_short_id_available(short):
-        if custom_id:
-            raise InvalidAPIUsage(
-                "Предложенный вариант короткой ссылки уже существует.",
-                HTTPStatus.BAD_REQUEST,
-            )
-
-        short = get_unique_short_id()
-        if not is_short_id_available(short):
-            raise InvalidAPIUsage(
-                "Не удалось создать уникальную короткую ссылку",
-                HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
-
-    url_map = URLMap(original=data["url"], short=short)
+    url_map = create_url_map(data["url"], custom_id)
     db.session.add(url_map)
     db.session.commit()
 
@@ -85,7 +86,7 @@ def add_url():
             {
                 "url": data["url"],
                 "short_link": url_for(
-                    "redirect_view", short_id=short, _external=True
+                    "redirect_view", short_id=url_map.short, _external=True
                 ),
             }
         ),
