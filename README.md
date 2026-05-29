@@ -1,98 +1,186 @@
-# YaCut - Сервис укорочения ссылок
+# Yacut
 
-[![Python](https://img.shields.io/badge/Python-3.7%2B-blue)](https://www.python.org/)
-[![Flask](https://img.shields.io/badge/Flask-2.0%2B-green)](https://flask.palletsprojects.com/)
-[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-1.4%2B-red)](https://www.sqlalchemy.org/)
+![Python](https://img.shields.io/badge/Python-3.x-blue)
+![Flask](https://img.shields.io/badge/Flask-3.0-black)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red)
+![Pytest](https://img.shields.io/badge/Pytest-tested-green)
 
-Сервис для преобразования длинных URL в короткие удобные ссылки.
+Yacut is a URL shortening service with a web interface and REST API.
 
-## Возможности
+The service converts long URLs into short links, supports custom aliases and redirects users from short links to original URLs.
 
-- Генерация коротких ссылок (6 случайных символов)
-- Возможность указать свой вариант короткой ссылки
-- Переадресация по коротким ссылкам
-- REST API для интеграции с другими сервисами
-- Валидация вводимых данных
+---
 
-## Технологии
+## Main features
 
-- Python 3.7+
-- Flask 2.0+
-- SQLAlchemy 1.4+
-- Bootstrap 5 (для фронтенда)
-- WTForms (для валидации)
+- Generate short links automatically
+- Create custom short aliases
+- Redirect short links to original URLs
+- REST API for integrations
+- Web interface with forms
+- Request validation
+- API error handling with JSON responses
+- SQLAlchemy database model
+- Flask-Migrate support
+- Automated tests with Pytest
 
-## Установка
+---
 
-1. Клонируйте репозиторий:
-   ```bash
-   git clone https://github.com/Viocid/yacut.git
-   cd yacut
-Создайте и активируйте виртуальное окружение:
+## Tech stack
 
-bash
-python -m venv venv
-source venv/bin/activate  # Linux/MacOS
-venv\Scripts\activate     # Windows
-Установите зависимости:
+- Python
+- Flask
+- Flask-SQLAlchemy
+- SQLAlchemy
+- Flask-WTF
+- Flask-Migrate
+- Jinja2
+- Pytest
+- Flake8
 
-bash
-pip install -r requirements.txt
-Настройте переменные окружения:
+---
 
-bash
-export FLASK_APP=yacut
-export FLASK_ENV=development
-export DATABASE_URI=sqlite:///db.sqlite3
-Инициализируйте базу данных:
+## Project structure
 
-bash
-flask db init
-flask db migrate -m "Initial migration"
-flask db upgrade
-Запуск
-bash
-flask run
-Сервис будет доступен по адресу: http://localhost:5000
+```text
+yacut/
+├── yacut/
+│   ├── __init__.py          # Application and database initialization
+│   ├── api_views.py         # REST API endpoints
+│   ├── constants.py         # Project constants
+│   ├── error_handlers.py    # Error handling
+│   ├── forms.py             # WTForms forms
+│   ├── models.py            # SQLAlchemy models
+│   ├── templates/           # HTML templates
+│   ├── utils.py             # Short link generation utilities
+│   └── views.py             # Web views
+├── tests/                   # Automated tests
+├── openapi.yml              # API schema
+├── settings.py              # Application config
+└── requirements.txt
+```
 
-API
-Сервис предоставляет REST API для работы с короткими ссылками:
+---
 
-Создание короткой ссылки
+## API endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/id/` | Create a short link |
+| `GET` | `/api/id/{short_id}/` | Get original URL by short ID |
+
+---
+
+## API examples
+
+### Create short link
+
+Request:
+
+```http
 POST /api/id/
-Пример запроса:
+Content-Type: application/json
+```
 
-json
+```json
 {
-  "url": "https://example.com",
+  "url": "https://example.com/some/very/long/url",
   "custom_id": "example"
 }
-Пример ответа:
+```
 
-json
+Response:
+
+```json
 {
-  "url": "https://example.com",
+  "url": "https://example.com/some/very/long/url",
   "short_link": "http://localhost/example"
 }
-Получение оригинальной ссылки
-GET /api/id/<short_id>/
-Пример ответа:
+```
 
-json
+### Get original URL
+
+```http
+GET /api/id/example/
+```
+
+Response:
+
+```json
 {
-  "url": "https://example.com"
+  "url": "https://example.com/some/very/long/url"
 }
-Структура проекта
-yacut/
-├── yacut/               # Основной пакет приложения
-│   ├── __init__.py      # Инициализация приложения
-│   ├── models.py        # Модели базы данных
-│   ├── forms.py         # Формы для ввода данных
-│   ├── views.py         # Основные view-функции
-│   ├── api_views.py     # API endpoints
-│   ├── error_handlers.py # Обработчики ошибок
-│   ├── utils.py         # Вспомогательные функции
-│   └── templates/       # Шаблоны
-├── tests/               # Тесты
-├── config.py            # Конфигурация
-└── requirements.txt     # Зависимости
+```
+
+---
+
+## Local installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Viocid/yacut.git
+cd yacut
+```
+
+Create and activate virtual environment:
+
+```bash
+python -m venv venv
+source venv/bin/activate      # Linux / macOS
+venv\Scripts\activate         # Windows
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Create `.env` file:
+
+```env
+FLASK_APP=yacut
+FLASK_ENV=development
+DATABASE_URI=sqlite:///db.sqlite3
+SECRET_KEY=your-secret-key
+```
+
+Apply migrations:
+
+```bash
+flask db upgrade
+```
+
+Run the application:
+
+```bash
+flask run
+```
+
+The service will be available at:
+
+```text
+http://127.0.0.1:5000
+```
+
+---
+
+## Running tests
+
+```bash
+pytest
+```
+
+---
+
+## What this project demonstrates
+
+- Flask application structure
+- REST API development
+- SQLAlchemy model design
+- Input validation
+- Error handling
+- Web forms with Flask-WTF
+- Short ID generation logic
+- Automated testing
